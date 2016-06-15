@@ -37,7 +37,7 @@
     <ProjectCapability Include="NuProj" />
   </ItemGroup>
 
-  <PropertyGroup> 
+  <PropertyGroup>
     <AvailablePlatforms>Any CPU,x86,x64,ARM</AvailablePlatforms>
     <DefaultContentType>Content</DefaultContentType>
   </PropertyGroup>
@@ -146,6 +146,13 @@
                                   Condition="'$(GenerateSymbolPackage)' == 'true'">
         <TargetPath>$(TargetName).symbols$(TargetExt)</TargetPath>
       </IntermediateSymbolsPackage>
+
+      <BuiltProjectOutputGroupKeyOutput Remove="@(BuiltProjectOutputGroupKeyOutput)" />
+      <BuiltProjectOutputGroupKeyOutput Include="@(IntermediateAssembly->'%(FullPath)')">
+        <IsKeyOutput>true</IsKeyOutput>
+        <FinalOutputPath>$(TargetPath)</FinalOutputPath>
+        <TargetPath>$(TargetFileName)</TargetPath>
+      </BuiltProjectOutputGroupKeyOutput>
     </ItemGroup>
   </Target>
 
@@ -491,6 +498,7 @@
          nuspec. -->
     <GenerateNuSpec InputFileName="$(NuSpecTemplate)"
                     OutputFileName="$(NuSpecPath)"
+					AssemblyName="$(AssemblyName)"
                     MinClientVersion="$(MinClientVersion)"
                     Id="$(Id)"
                     Version="$(Version)"
@@ -513,6 +521,8 @@
                     FrameworkReferences="@(FrameworkReference)"
                     Files="@(PackageFile)">
       <Output TaskParameter="FilesWritten" ItemName="FileWrites"/>
+      <Output TaskParameter="Version" PropertyName="Version"/>
+      <Output TaskParameter="TargetName" PropertyName="TargetName"/>
     </GenerateNuSpec>
   </Target>
 
@@ -532,11 +542,11 @@
     =================================================================================================================== -->
 
   <Target Name="CreatePackage"
-           Inputs="$(MSBuildAllProjects);
+          Inputs="$(MSBuildAllProjects);
                   $(NuSpecPath);
                   @(File)"
-           Outputs="$(NuGetOutputPath)"
-           DependsOnTargets="GenerateNuSpec;PrepareForBuild">
+          Outputs="$(NuGetOutputPath)"
+          DependsOnTargets="GenerateNuSpec;PrepareForBuild">
     <PropertyGroup>
       <ExitCode>0</ExitCode>
     </PropertyGroup>
@@ -552,6 +562,7 @@
       <Output TaskParameter="OutputSymbolsPackage" ItemName="FileWrites"/>
       <Output TaskParameter="OutputPackage" PropertyName="OutputPackage"/>
       <Output TaskParameter="OutputSymbolsPackage" PropertyName="OutputSymbolsPackage"/>
+      <Output TaskParameter="TargetName" PropertyName="TargetName"/>
       <Output TaskParameter="ExitCode" PropertyName="ExitCode"/>
     </NuGetPack>
 
@@ -1098,7 +1109,7 @@
         @(SymbolsPackageProjectOutputGroupDependency)             Symbols packages produced by referenced projects.
 
     =================================================================================================================== -->
-  
+
   <Target Name="SymbolsPackageProjectOutputGroupDependencies"
           DependsOnTargets="BuildOnlySettings;PrepareForBuild;AssignTargetPaths;ResolveReferences"
           Returns="@(SymbolsPackageProjectOutputGroupDependency)">
@@ -1109,11 +1120,11 @@
     </ItemGroup>
   </Target>
 
-    <!-- Define CoreCompile and CreateManifestResourceNames targets, which are misssing in Microsoft.Common.targets -->
-  <Target Name="CoreCompile" DependsOnTargets="CreatePackage" />
+  <!-- Define CoreCompile and CreateManifestResourceNames targets, which are misssing in Microsoft.Common.targets -->
+  <Target Name="CoreCompile" DependsOnTargets="CreatePackage;PublishPackage" />
 
   <Target Name="CreateManifestResourceNames" Condition="false" />
-  
+
   <Import Project="$(CustomAfterNuProjTargets)" Condition="'$(CustomAfterNuProjTargets)' != '' and Exists('$(CustomAfterNuProjTargets)')"/>
-  
+
 </Project>
