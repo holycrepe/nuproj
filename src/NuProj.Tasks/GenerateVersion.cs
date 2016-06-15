@@ -1,17 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.Versioning;
-using System.Text;
+
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using NuGet;
 
 namespace NuProj.Tasks
 {
-    using System.Diagnostics;
-    using System.Runtime.InteropServices;
+    using System.Linq;
+
+    using NuProj.Tasks.AssemblyInfo;
+    using NuProj.Tasks.Extensions;
 
     public class GenerateVersion : Task
     {
@@ -50,48 +48,20 @@ namespace NuProj.Tasks
                                        MessageImportance.Low);
                 return;
             }
-            string mainVersion;
-            var mainProject = GetAssemblyInfo(out mainVersion);
-            if (string.IsNullOrWhiteSpace(mainVersion))
+
+            var assembly = GetMainAssembly();
+            if (assembly == null)
             {
-                Log.LogError("Unable to automatically generate version: Ensure main project contains valid Properties/AssemblyInfo.cs file");
+                Log.LogError("Unable to automatically generate version: "
+                             + "Ensure main project contains valid 'AssemblyVersionInfo.cs' or 'Properties/AssemblyInfo.cs' file, with an 'AssemblyVersion' attribute");
                 return;
             }
-            Version = mainVersion;
-            Log.LogMessageFromText($"Generated version {mainVersion} from main project {mainProject}",
+            Version = assembly.Version.Main.ToString();
+            Log.LogMessageFromText($"Generated version {Version} from main project {assembly.Project.Name}",
                                    MessageImportance.High);
         }
 
-        private string GetAssemblyInfo(out string version)
-        {
-            foreach (var projectItem in this.Files)
-            {
-                var projectFileName = projectItem.ItemSpec;
-                if (string.IsNullOrEmpty(projectFileName))
-                    continue;
-                var assemblyInfoFileName = Path.Combine(Path.GetDirectoryName(projectFileName), "Properties",
-                                                        "AssemblyInfo.cs");
-                if (!File.Exists(assemblyInfoFileName))
-                    continue;
-
-                var fileContents = File.ReadAllText(assemblyInfoFileName);
-                var fileVersion = GetAssemblyAttribute(fileContents, "Version");
-                if (string.IsNullOrWhiteSpace(fileVersion))
-                    continue;
-                version = fileVersion;
-                return Path.GetFileNameWithoutExtension(projectFileName);
-            }
-            version = null;
-            return null;
-        }
-        public string GetAssemblyAttribute(string text, string attribute)
-        {
-            if (text == null)
-                return null;
-            var start = "Assembly" + attribute + "(";
-            text = text.Replace(start + " ", start).Replace("\" )]", "\")]");
-            var value = text.GetTextBetween(start + "\"", "\")]");
-            return string.IsNullOrEmpty(value) ? null : value.TrimStart(new char[] { ' ', '"' });
-        }
+        private ProjectAssembly GetMainAssembly()
+            => this.Files.Select(p => new ProjectAssembly(p.ItemSpec)).FirstOrDefault(p => p.HasMainVersion);
     }
 }

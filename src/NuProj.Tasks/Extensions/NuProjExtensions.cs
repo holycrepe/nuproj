@@ -1,18 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Build.Framework;
-using NuGet;
-
-namespace NuProj.Tasks
+﻿namespace NuProj.Tasks.Extensions
 {
-    public static class Extensions
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using System.Runtime.Versioning;
+
+    using Microsoft.Build.Framework;
+
+    using NuGet;
+
+    public static class NuProjExtensions
     {
         private static readonly FrameworkName NullFramework = new FrameworkName("Null,Version=v1.0");
 
