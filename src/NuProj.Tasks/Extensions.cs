@@ -23,6 +23,17 @@ namespace NuProj.Tasks
             bool.TryParse(metadataValue, out result);
             return result;
         }
+        public static string GetTextBetween(this string text, string start, string end, bool lastIndexOfStart = true, StringComparison comparisonType = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(text))
+                return null;
+            var i = lastIndexOfStart ? text.LastIndexOf(start, comparisonType) : text.IndexOf(start, comparisonType);
+            if (i == -1)
+                return null;
+            var value = text.Substring(i + start.Length);
+            i = value.IndexOf(end, comparisonType);
+            return i == -1 ? null : value.Substring(0, i);
+        }
 
         public static string GetTextBetween(this string text, string start, string end, bool lastIndexOfStart = true, StringComparison comparisonType = StringComparison.Ordinal)
         {
@@ -107,6 +118,13 @@ namespace NuProj.Tasks
             if (frameworkName == null || frameworkName == NullFramework)
             {
                 return null;
+            }
+
+            if (frameworkName.Identifier == ".NETPortable" && frameworkName.Version.Major == 5 && frameworkName.Version.Minor == 0)
+            {
+                // Avoid calling GetShortFrameworkName because NuGet throws ArgumentException
+                // in this case.
+                return "dotnet";
             }
 
             return VersionUtility.GetShortFrameworkName(frameworkName);

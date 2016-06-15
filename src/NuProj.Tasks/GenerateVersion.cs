@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.Versioning;
-using System.Text;
+
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using NuGet;
 
 namespace NuProj.Tasks
 {
-    using System.Diagnostics;
-    using System.Runtime.InteropServices;
 
     public class GenerateVersion : Task
     {
@@ -22,7 +16,7 @@ namespace NuProj.Tasks
         [Output]
         public string TargetName
             => $"{AssemblyName}.{Version}";
-        
+
         [Output]
         public string Version { get; set; }
 
@@ -42,10 +36,29 @@ namespace NuProj.Tasks
 
             return !Log.HasLoggedErrors;
         }
+        private void GetVersion()
+        {
+            if (Version != "$version$" && !string.IsNullOrEmpty(Version))
+            {
+                Log.LogMessageFromText($"Using explicitly provided version {Version}",
+                                       MessageImportance.Low);
+                return;
+            }
+            string mainVersion;
+            var mainProject = GetAssemblyInfo(out mainVersion);
+            if (string.IsNullOrWhiteSpace(mainVersion))
+            {
+                Log.LogError("Unable to automatically generate version: Ensure main project contains valid Properties/AssemblyInfo.cs file");
+                return;
+            }
+            Version = mainVersion;
+            Log.LogMessageFromText($"Generated version {mainVersion} from main project {mainProject}",
+                                   MessageImportance.High);
+        }
 
         private string GetAssemblyInfo(out string version)
         {
-            foreach (var projectItem in this.Files)
+            foreach (var projectItem in Files)
             {
                 var projectFileName = projectItem.ItemSpec;
                 if (string.IsNullOrEmpty(projectFileName))
@@ -64,25 +77,6 @@ namespace NuProj.Tasks
             }
             version = null;
             return null;
-        }
-        private void GetVersion()
-        {
-            if (this.Version != "$version$" && !string.IsNullOrEmpty(this.Version))
-            {
-                Log.LogMessageFromText($"Generating version given version {Version}",
-                                       MessageImportance.High);
-                return;
-            }
-            string mainVersion;
-            var mainProject = GetAssemblyInfo(out mainVersion);
-            if (string.IsNullOrWhiteSpace(mainVersion))
-            {
-                Log.LogError("Unable to automatically generate version");
-                return;
-            }
-            Version = mainVersion;
-            Log.LogMessageFromText($"Generated version {mainVersion} from main project {mainProject}",
-                                   MessageImportance.High);
         }
         public string GetAssemblyAttribute(string text, string attribute)
         {
