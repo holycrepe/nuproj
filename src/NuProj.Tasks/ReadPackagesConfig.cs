@@ -13,6 +13,8 @@ using NuGet;
 
 namespace NuProj.Tasks
 {
+    using NuProj.Tasks.Extensions;
+
     public class ReadPackagesConfig : Task
     {
         [Required]

@@ -109,21 +109,31 @@
 
       We set these properties in a Target so that other targets that determine what $(Version)
       should be can run first.
-      
-      If $(Version) is empty or equal to '$version$', it is overwritten with the version specified in 
-      the Properties/AssemblyInfo.cs file.
-      
   -->
 
   <Target Name="EstablishNuGetPaths" DependsOnTargets="$(VersionDependsOn)">
     <GenerateVersion AssemblyName="$(AssemblyName)"
-       Version="$(Version)"
-       Files="@(ProjectReference)">
+					 Version="$(Version)"
+					 Files="@(ProjectReference)">
       <Output TaskParameter="Version" PropertyName="Version" />
     </GenerateVersion>
 
     <PropertyGroup>
-      <TargetName>$(AssemblyName).$(Version)</TargetName>
+      <DoPublishPackage>true</DoPublishPackage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(ConfigurationName)' == 'Debug'">
+      <DoPublishPackage>false</DoPublishPackage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(PublishPackage)' == 'Always'">
+      <DoPublishPackage>true</DoPublishPackage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(PublishPackage)' == 'Never'">
+      <DoPublishPackage>false</DoPublishPackage>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <TargetName>$(AssemblyName)</TargetName>
+      <TargetName Condition="'$(Version)' != '$version$'">$(AssemblyName).$(Version)</TargetName>
       <TargetFileName>$(TargetName)$(TargetExt)</TargetFileName>
       <TargetPath>$(TargetDir)$(TargetFileName)</TargetPath>
       <NuGetOutputPath>$(TargetDir)$(TargetName)$(TargetExt)</NuGetOutputPath>
@@ -573,12 +583,12 @@
            ToolExe="$(NuGetToolExe)">
       <Output TaskParameter="ExitCode" PropertyName="ExitCode"/>
     </NuGetPush>
-    <Warning Code="$(ExitCode)" Text="An error occurred while publishing the main package" Condition="'$(ExitCode)' != '0'"  />
+    <Warning Code="$(ExitCode)" Text="An error occurred while publishing the main package" Condition="'$(OutputPackage)' != '' And '$(OutputSymbolsPackage)' == '' And $(DoPublishPackage) And '$(ExitCode)' != '0'"  />
 
     <Message Text="Publishing $(OutputSymbolsPackage) to $(Repository)..."
          Condition="'$(OutputSymbolsPackage)' != '' And $(DoPublishPackage)  And '$(ExitCode)' == '0'"
          Importance="High" />
-    <NuGetPush Condition="'$(OutputSymbolsPackage)' != '' And $(DoPublishPackage)  And '$(ExitCode)' == '0' And '1' == '1'"
+    <NuGetPush Condition="'$(OutputSymbolsPackage)' != '' And $(DoPublishPackage)  And '$(ExitCode)' == '0'"
            ContinueOnError="WarnAndContinue"
            PackagePath="$(OutputSymbolsPackage)"
            Source="$(Repository)"
@@ -587,61 +597,8 @@
            ToolExe="$(NuGetToolExe)">
       <Output TaskParameter="ExitCode" PropertyName="ExitCode"/>
     </NuGetPush>
-    <Warning Code="$(ExitCode)" Text="An error occurred while publishing the symbols package" Condition="'$(ExitCode)' != '0'"  />
+    <Warning Code="$(ExitCode)" Text="An error occurred while publishing the symbols package" Condition="'$(OutputSymbolsPackage)' != '' And $(DoPublishPackage)  And '$(ExitCode)' != '0'"  />
 
-
-    <!-- <ItemGroup>
-		<NugetPackageWrites Include="$(OutputPackage)" Condition="'$(OutputPackage)' != ''" />
-		<NugetPackageWrites Include="$(OutputSymbolsPackage)" Condition="'$(OutputSymbolsPackage)' != ''" />
-	</ItemGroup>
-	<Message Text="Call `$(MSBuildProjectFile)` ~ `@(NugetPackageWrites)`   $(OutputPackage)  |    $(OutputSymbolsPackage) " Importance="High" />
-	<MSBuild Projects="$(MSBuildProjectFile)" Targets="PublishPackage" Properties="NugetNewPackageName=%(NugetPackageWrites.Identity)" /> -->
-
-  </Target>
-
-  <!--
-    ===================================================================================================================
-    PublishPackage
-    ===================================================================================================================
-
-    This target publishes a NuGet package given a .nupkg file
-
-    INPUTS:
-        $(NugetPackagePath)            The path to the Nuget Package (i.e., $(NugetOutputPath))
-        $(Repository)          		   The name or url of the target repository
-        $(ApiKey)           		   The API key of the repository
-        $(NuGetToolPath)               The path of the directory that contains to NuGet.exe
-        $(NuGetToolExe)                The name of NuGet.exe
-
-    =================================================================================================================== -->
-
-  <Target Name="PublishPackage"
-		  Inputs="$(MSBuildAllProjects);
-                  @(NugetPackageWrites);
-				  $(NugetNewPackageName)"
-		  Outputs="%(PackageWrites.Identity.Dummy)"
-          Condition="'$(DoPublishPackage)' == '1'"
-          DependsOnTargets="PrepareForBuild">
-    <Message Text="Will Publish Package  ... 
-	
-	NugetNewPackageName = $(NugetNewPackageName)
-	
-	
-	PackageWrites = @(NugetPackageWrites);  
-	PackageWrites = %(NugetPackageWrites);  
-	PackageWrites = %(NugetPackageWrites.Identity);  
-	NewPkg = $(NugetCreatedPackagePath);  
-	Pkg = $(OutputPackage);  
-	Sym = $(OutputSymbolsPackage) 
-	
-	src= $(Repository)  -- $(ApiKey)  " />
-    <!--  <NuGetPush PackagePath="@(NugetCreatedPackagePath)"
-               Source="$(Repository)"
-               ApiKey="$(ApiKey)"
-               ToolPath="$(NuGetToolPath)"
-               ToolExe="$(NuGetToolExe)">
-      <Output TaskParameter="ExitCode" PropertyName="NugetPublishPackageExitCode"/>
-    </NuGetPush> -->
   </Target>
 
   <!--

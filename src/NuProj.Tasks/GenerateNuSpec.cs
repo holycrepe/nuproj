@@ -10,8 +10,9 @@ using NuGet;
 
 namespace NuProj.Tasks
 {
-    using System.Diagnostics;
-    using System.Runtime.InteropServices;
+    using System.Linq.Expressions;
+
+    using NuProj.Tasks.Extensions;
 
     public class GenerateNuSpec : Task
     {
@@ -22,19 +23,12 @@ namespace NuProj.Tasks
         [Required]
         public string OutputFileName { get; set; }
 
-        public string AssemblyName { get; set; }
-
-        [Output]
-        public string TargetName
-            => $"{AssemblyName}.{Version}";
-
         public string MinClientVersion { get; set; }
 
         [Required]
         public string Id { get; set; }
 
         [Required]
-        [Output]
         public string Version { get; set; }
 
         [Required]
@@ -136,12 +130,15 @@ namespace NuProj.Tasks
             return oldSource != newSource;
         }
 
+        private void LogImportant(string message)
+            => Log.LogMessage(MessageImportance.High, nameof(GenerateNuSpec) + ": " + message);
         private Manifest CreateManifest()
         {
             Manifest manifest;
             ManifestMetadata manifestMetadata;
             if (!string.IsNullOrEmpty(InputFileName))
             {
+                LogImportant($"Reading Manifest From {InputFileName}");
                 using (var stream = File.OpenRead(InputFileName))
                 {
                     manifest = Manifest.ReadFrom(stream, false);
@@ -161,27 +158,33 @@ namespace NuProj.Tasks
             }
 
             manifestMetadata = manifest.Metadata;
+
+            Action<Expression<Func<ManifestMetadata, string>>, string> update = (l, v) =>
+                {
+                    if (v != "<nuspec>")
+                        manifestMetadata.UpdateMember(l, v);                    
+                };
             
-            manifestMetadata.UpdateMember(x => x.Authors, Authors);
-            manifestMetadata.UpdateMember(x => x.Copyright, Copyright);
+            update(x => x.Authors, Authors);
+            update(x => x.Copyright, Copyright);
             manifestMetadata.AddRangeToMember(x => x.DependencySets, GetDependencySets());
-            manifestMetadata.UpdateMember(x => x.Description, Description);
+            update(x => x.Description, Description);
             manifestMetadata.DevelopmentDependency |= DevelopmentDependency;
             manifestMetadata.AddRangeToMember(x => x.FrameworkAssemblies, GetFrameworkAssemblies());
-            manifestMetadata.UpdateMember(x => x.IconUrl, IconUrl);
-            manifestMetadata.UpdateMember(x => x.Id, Id);
-            manifestMetadata.UpdateMember(x => x.Language, Language);
-            manifestMetadata.UpdateMember(x => x.LicenseUrl, LicenseUrl);
-            manifestMetadata.UpdateMember(x => x.MinClientVersionString, MinClientVersion);
-            manifestMetadata.UpdateMember(x => x.Owners, Owners);
-            manifestMetadata.UpdateMember(x => x.ProjectUrl, ProjectUrl);
+            update(x => x.IconUrl, IconUrl);
+            update(x => x.Id, Id);
+            update(x => x.Language, Language);
+            update(x => x.LicenseUrl, LicenseUrl);
+            update(x => x.MinClientVersionString, MinClientVersion);
+            update(x => x.Owners, Owners);
+            update(x => x.ProjectUrl, ProjectUrl);
             manifestMetadata.AddRangeToMember(x => x.ReferenceSets, GetReferenceSets());
-            manifestMetadata.UpdateMember(x => x.ReleaseNotes, ReleaseNotes);
+            update(x => x.ReleaseNotes, ReleaseNotes);
             manifestMetadata.RequireLicenseAcceptance |= RequireLicenseAcceptance;
-            manifestMetadata.UpdateMember(x => x.Summary, Summary);
-            manifestMetadata.UpdateMember(x => x.Tags, Tags);
-            manifestMetadata.UpdateMember(x => x.Title, Title);
-            manifestMetadata.UpdateMember(x => x.Version, Version);
+            update(x => x.Summary, Summary);
+            update(x => x.Tags, Tags);
+            update(x => x.Title, Title);
+            update(x => x.Version, Version);
 
             manifest.AddRangeToMember(x => x.Files, GetManifestFiles());
 
@@ -189,7 +192,7 @@ namespace NuProj.Tasks
         }
 
         private List<ManifestFile> GetManifestFiles()
-        {            
+        {
             return (from f in Files.NullAsEmpty()
                     select new ManifestFile
                     {

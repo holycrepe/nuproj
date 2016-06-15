@@ -57,11 +57,18 @@
     <Compile Include="..\Common\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AssemblyInfo\AssemblyAttributes.cs" />
+    <Compile Include="AssemblyInfo\AssemblyFile.cs" />
+    <Compile Include="AssemblyInfo\AssemblyVersions.cs" />
+    <Compile Include="AssemblyInfo\ProjectAssembly.cs" />
+    <Compile Include="AssemblyInfo\AssemblyFiles.cs" />
+    <Compile Include="AssemblyInfo\ProjectMetadata.cs" />
     <Compile Include="AssignTargetFramework.cs" />
+    <Compile Include="Extensions\Collections\DictExtensions.cs" />
     <Compile Include="GenerateNuSpec.cs" />
     <Compile Include="GenerateVersion.cs" />
     <Compile Include="AssignSourceTargetPaths.cs" />
-    <Compile Include="Extensions.cs" />
+    <Compile Include="Extensions\NuProjExtensions.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="NuGetPush.cs" />
     <Compile Include="NuGetPack.cs" />

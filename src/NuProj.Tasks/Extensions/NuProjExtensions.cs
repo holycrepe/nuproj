@@ -1,20 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Build.Framework;
-using NuGet;
-
-namespace NuProj.Tasks
+﻿namespace NuProj.Tasks.Extensions
 {
-    public static class Extensions
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using System.Runtime.Versioning;
+
+    using Microsoft.Build.Framework;
+
+    using NuGet;
+
+    public static class NuProjExtensions
     {
         private static readonly FrameworkName NullFramework = new FrameworkName("Null,Version=v1.0");
+
+        public static string GetTextBetween(this string text, string start, string end, bool lastIndexOfStart = true, StringComparison comparisonType = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(text))
+                return null;
+            var i = lastIndexOfStart ? text.LastIndexOf(start, comparisonType) : text.IndexOf(start, comparisonType);
+            if (i == -1)
+                return null;
+            var value = text.Substring(i + start.Length);
+            i = value.IndexOf(end, comparisonType);
+            return i == -1 ? null : value.Substring(0, i);
+        }
 
         public static bool GetBoolean(this ITaskItem taskItem, string metadataName, bool defaultValue = false)
         {
@@ -23,29 +35,7 @@ namespace NuProj.Tasks
             bool.TryParse(metadataValue, out result);
             return result;
         }
-        public static string GetTextBetween(this string text, string start, string end, bool lastIndexOfStart = true, StringComparison comparisonType = StringComparison.Ordinal)
-        {
-            if (string.IsNullOrEmpty(text))
-                return null;
-            var i = lastIndexOfStart ? text.LastIndexOf(start, comparisonType) : text.IndexOf(start, comparisonType);
-            if (i == -1)
-                return null;
-            var value = text.Substring(i + start.Length);
-            i = value.IndexOf(end, comparisonType);
-            return i == -1 ? null : value.Substring(0, i);
-        }
 
-        public static string GetTextBetween(this string text, string start, string end, bool lastIndexOfStart = true, StringComparison comparisonType = StringComparison.Ordinal)
-        {
-            if (string.IsNullOrEmpty(text))
-                return null;
-            var i = lastIndexOfStart ? text.LastIndexOf(start, comparisonType) : text.IndexOf(start, comparisonType);
-            if (i == -1)
-                return null;
-            var value = text.Substring(i + start.Length);
-            i = value.IndexOf(end, comparisonType);
-            return i == -1 ? null : value.Substring(0, i);
-        }
         public static FrameworkName GetTargetFramework(this ITaskItem taskItem)
         {
             FrameworkName result = null;
@@ -118,13 +108,6 @@ namespace NuProj.Tasks
             if (frameworkName == null || frameworkName == NullFramework)
             {
                 return null;
-            }
-
-            if (frameworkName.Identifier == ".NETPortable" && frameworkName.Version.Major == 5 && frameworkName.Version.Minor == 0)
-            {
-                // Avoid calling GetShortFrameworkName because NuGet throws ArgumentException
-                // in this case.
-                return "dotnet";
             }
 
             return VersionUtility.GetShortFrameworkName(frameworkName);
